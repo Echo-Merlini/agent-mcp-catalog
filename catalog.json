@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "Agent MCP Catalog",
+  "description": "MCP servers compatible with the Recomputable Agents kit. Every tool call routed through these is attested and recomputable.",
+  "kit": "https://github.com/Echo-Merlini/verifiable-agents",
+  "howToAdd": "Gateway admin -> /admin/mcps -> Add MCP server (name, endpoint URL, auth). Then assign per-agent. Calls flow through the attestation pipeline and are recomputable on /verify.",
+  "mcps": [
+    {
+      "slug": "opensea",
+      "name": "OpenSea",
+      "category": "NFT market",
+      "tagline": "NFT market",
+      "summary": "Reads collection stats, floor prices and live listings, and prepares buy calldata so the agent can surface real NFTs you can actually purchase.",
+      "example": "Show me some NFTs currently listed in the goblinarinos721 collection on OpenSea, with images and prices.",
+      "custody": "read + calldata",
+      "status": "live"
+    },
+    {
+      "slug": "lifi",
+      "name": "LI.FI",
+      "category": "Cross-chain",
+      "tagline": "Cross-chain router",
+      "summary": "Finds the best bridge-and-swap route across 30+ chains for ETH and ERC-20 tokens, returning a ready-to-sign quote with fees and timing.",
+      "example": "Find the best route to bridge 0.1 ETH from Ethereum to Base and summarise it.",
+      "custody": "read + calldata",
+      "status": "live"
+    },
+    {
+      "slug": "symbiosis",
+      "name": "Symbiosis",
+      "category": "Cross-chain",
+      "tagline": "Cross-chain swaps",
+      "summary": "Returns read-only quotes and calldata to move value between chains in a single step.",
+      "example": "Quote a cross-chain swap of 100 USDC from Ethereum to Arbitrum and summarise the route.",
+      "custody": "read + calldata",
+      "status": "live"
+    },
+    {
+      "slug": "1inch",
+      "name": "1inch",
+      "category": "DEX aggregator",
+      "tagline": "DEX aggregator",
+      "summary": "Finds the best swap price across dozens of liquidity sources, plus limit orders and portfolio data. Swaps ask for the user's wallet to sign.",
+      "example": "Show the best price to swap 1 ETH into USDC on Ethereum (quote only).",
+      "custody": "read + calldata",
+      "status": "live"
+    },
+    {
+      "slug": "flashbots",
+      "name": "Flashbots",
+      "category": "MEV / execution",
+      "tagline": "MEV / blocks",
+      "summary": "Private-mempool protection: sends transactions privately, simulates bundles and checks status, shielding trades from front-running and sandwich MEV.",
+      "example": "Check the latest Ethereum block and its base fee.",
+      "custody": "read + private submit",
+      "status": "live"
+    },
+    {
+      "slug": "solana-jupiter",
+      "name": "Solana (Jupiter)",
+      "category": "Multichain DeFi",
+      "tagline": "Solana DeFi",
+      "summary": "Jupiter, Solana's DeFi hub: looks up token prices, market cap, liquidity and swap routes across every Solana DEX. Multichain reach beyond Ethereum.",
+      "example": "Look up BONK and give me its price, market cap and liquidity.",
+      "custody": "read",
+      "status": "live"
+    },
+    {
+      "slug": "recompute-kit",
+      "name": "Recompute Kit",
+      "category": "Verification",
+      "tagline": "Verify by recompute",
+      "summary": "The house verifier. Re-derives a claim from the primary artifact, pinned to an exact reference, with evidence attached. Don't trust - recompute.",
+      "example": "Explain step by step how you would verify an on-chain attestation by recomputing it from the primary artifact.",
+      "custody": "read",
+      "status": "live"
+    },
+    {
+      "slug": "forensics",
+      "name": "Forensics",
+      "category": "Security",
+      "tagline": "Trace funds",
+      "summary": "Traces fund flows in and out of flagged addresses across chains and serves a scam-victim recovery playbook, following the money to downstream wallets.",
+      "example": "Fetch the scam-victim recovery playbook and summarise the first steps a victim should take.",
+      "custody": "read",
+      "status": "live"
+    },
+    {
+      "slug": "uniswap",
+      "name": "Uniswap",
+      "category": "DEX",
+      "tagline": "Direct swaps",
+      "summary": "Builds swap calldata directly against the Uniswap protocol (Trading API / v4 SDK), not via an aggregator. Non-custodial and recomputable.",
+      "example": "Swap 0.1 ETH into USDC on Uniswap (calldata for my wallet to sign).",
+      "custody": "read + calldata",
+      "status": "building"
+    },
+    {
+      "slug": "0g",
+      "name": "0G",
+      "category": "Decentralized storage",
+      "tagline": "Decentralized artifacts",
+      "summary": "Writes recompute artifacts (raw input / output / manifest blobs) to 0G Storage alongside IPFS, so agent actions are recomputable from decentralized data.",
+      "example": "Store this action's recompute artifact on 0G and return its root hash.",
+      "custody": "read + write",
+      "status": "building"
+    }
+  ]
+}
