@@ -30,14 +30,20 @@ The kit doesn't hard-code tools — you connect MCP servers at runtime and scope
 | **Solana (Jupiter)** | Multichain DeFi | Token price, market cap, liquidity and swap routes across every Solana DEX. |
 | **Recompute Kit** | Verification | The house verifier — re-derives a claim from the primary artifact at a pinned ref. |
 | **Forensics** | Security | Traces fund flows across chains; serves a scam-victim recovery playbook. |
+| **Uniswap** | DEX | Direct Uniswap v3 — QuoterV2 price + SwapRouter02 `exactInputSingle` calldata the user's own wallet signs. Every swap recomputable. |
 
 ### In progress
 | MCP | Category | Status |
 | --- | --- | --- |
-| **Uniswap** | DEX | Direct swaps via the Uniswap Trading API — swap calldata the user's own wallet signs, every swap recomputable. *(building)* |
 | **0G** | Decentralized storage | Recompute artifacts written to 0G Storage alongside IPFS — recomputable from decentralized data. *(building)* |
 
 A machine-readable version is in [`catalog.json`](./catalog.json).
+
+## Reference implementations
+
+Actual MCP server code that runs in the kit gateway (self-contained: Hono + ethers, no aggregator):
+
+- [`reference/uniswap.mcp.ts`](./reference/uniswap.mcp.ts) — **Uniswap** direct swaps. `uniswap_quote` (QuoterV2, best fee tier auto-selected) + `uniswap_swap_calldata` (SwapRouter02 `exactInputSingle`). Ethereum + Base, native-ETH aware, RPC failover.
 
 ---
 

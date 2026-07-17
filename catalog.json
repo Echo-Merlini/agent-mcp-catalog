@@ -90,10 +90,11 @@
       "name": "Uniswap",
       "category": "DEX",
       "tagline": "Direct swaps",
-      "summary": "Builds swap calldata directly against the Uniswap protocol (Trading API / v4 SDK), not via an aggregator. Non-custodial and recomputable.",
+      "summary": "Direct Uniswap v3: QuoterV2 price quotes (best fee tier auto-selected) + SwapRouter02 exactInputSingle calldata the user's own wallet signs. Ethereum + Base. Not an aggregator. Non-custodial and recomputable.",
       "example": "Swap 0.1 ETH into USDC on Uniswap (calldata for my wallet to sign).",
       "custody": "read + calldata",
-      "status": "building"
+      "reference": "reference/uniswap.mcp.ts",
+      "status": "live"
     },
     {
       "slug": "0g",
