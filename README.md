@@ -32,6 +32,7 @@ The kit doesn't hard-code tools — you connect MCP servers at runtime and scope
 | **Forensics** | Security | Traces fund flows across chains; serves a scam-victim recovery playbook. |
 | **Uniswap** | DEX | Direct Uniswap v3 — QuoterV2 price + SwapRouter02 `exactInputSingle` calldata the user's own wallet signs. Every swap recomputable. |
 | **0G** | Decentralized storage | Stores/fetches an action's recompute artifacts on 0G Storage — recomputable from a decentralized data layer, not a single server. |
+| **ENS** | Identity / naming | The first ENS **write** MCP — check availability + price, register a `.eth` name (commit/reveal), and set records (text / addr / primary). Non-custodial calldata; every action recomputable. Existing ENS MCPs are read-only. |
 
 A machine-readable version is in [`catalog.json`](./catalog.json).
 
@@ -41,6 +42,7 @@ Actual MCP server code that runs in the kit gateway (self-contained: Hono + ethe
 
 - [`reference/uniswap.mcp.ts`](./reference/uniswap.mcp.ts) — **Uniswap** direct swaps. `uniswap_quote` (QuoterV2, best fee tier auto-selected) + `uniswap_swap_calldata` (SwapRouter02 `exactInputSingle`). Ethereum + Base, native-ETH aware, RPC failover.
 - [`reference/zerog.mcp.ts`](./reference/zerog.mcp.ts) — **0G** decentralized storage. `og_store_artifact` + `og_fetch_artifact` on 0G Storage (`@0gfoundation/0g-storage-ts-sdk`), lazy-loaded so it never blocks startup. Stores an action's recompute artifacts on a decentralized data layer.
+- [`reference/ens.mcp.ts`](./reference/ens.mcp.ts) — **ENS** (the first ENS *write* MCP). `ens_check` (availability + price) + `ens_register_commit` / `ens_register` (commit→reveal purchase) + `ens_set_text` / `ens_set_addr` / `ens_set_primary`. Non-custodial calldata; supports ENSIP-25 agent-registration records.
 
 ---
 

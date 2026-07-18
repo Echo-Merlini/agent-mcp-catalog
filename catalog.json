@@ -106,6 +106,17 @@
       "custody": "read + write",
       "reference": "reference/zerog.mcp.ts",
       "status": "live"
+    },
+    {
+      "slug": "ens",
+      "name": "ENS",
+      "category": "Identity / naming",
+      "tagline": "Names + records",
+      "summary": "The first ENS write MCP: ens_check (availability + price), ens_register_commit / ens_register (commit-reveal purchase of a .eth name), and ens_set_text / ens_set_addr / ens_set_primary. Non-custodial calldata the user's own wallet signs; supports ENSIP-25 agent-registration records. Existing ENS MCPs are read-only.",
+      "example": "Is recompute.eth available? If so, register it and set its url record.",
+      "custody": "read + calldata",
+      "reference": "reference/ens.mcp.ts",
+      "status": "live"
     }
   ]
 }
