@@ -101,10 +101,11 @@
       "name": "0G",
       "category": "Decentralized storage",
       "tagline": "Decentralized artifacts",
-      "summary": "Writes recompute artifacts (raw input / output / manifest blobs) to 0G Storage alongside IPFS, so agent actions are recomputable from decentralized data.",
+      "summary": "Writes/reads recompute artifacts (raw input / output / manifest blobs) on 0G Storage via @0gfoundation/0g-storage-ts-sdk, so agent actions are recomputable from decentralized data, not a single server. og_store_artifact returns a content-addressed rootHash; og_fetch_artifact retrieves it.",
       "example": "Store this action's recompute artifact on 0G and return its root hash.",
       "custody": "read + write",
-      "status": "building"
+      "reference": "reference/zerog.mcp.ts",
+      "status": "live"
     }
   ]
 }

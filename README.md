@@ -31,11 +31,7 @@ The kit doesn't hard-code tools — you connect MCP servers at runtime and scope
 | **Recompute Kit** | Verification | The house verifier — re-derives a claim from the primary artifact at a pinned ref. |
 | **Forensics** | Security | Traces fund flows across chains; serves a scam-victim recovery playbook. |
 | **Uniswap** | DEX | Direct Uniswap v3 — QuoterV2 price + SwapRouter02 `exactInputSingle` calldata the user's own wallet signs. Every swap recomputable. |
-
-### In progress
-| MCP | Category | Status |
-| --- | --- | --- |
-| **0G** | Decentralized storage | Recompute artifacts written to 0G Storage alongside IPFS — recomputable from decentralized data. *(building)* |
+| **0G** | Decentralized storage | Stores/fetches an action's recompute artifacts on 0G Storage — recomputable from a decentralized data layer, not a single server. |
 
 A machine-readable version is in [`catalog.json`](./catalog.json).
 
@@ -44,6 +40,7 @@ A machine-readable version is in [`catalog.json`](./catalog.json).
 Actual MCP server code that runs in the kit gateway (self-contained: Hono + ethers, no aggregator):
 
 - [`reference/uniswap.mcp.ts`](./reference/uniswap.mcp.ts) — **Uniswap** direct swaps. `uniswap_quote` (QuoterV2, best fee tier auto-selected) + `uniswap_swap_calldata` (SwapRouter02 `exactInputSingle`). Ethereum + Base, native-ETH aware, RPC failover.
+- [`reference/zerog.mcp.ts`](./reference/zerog.mcp.ts) — **0G** decentralized storage. `og_store_artifact` + `og_fetch_artifact` on 0G Storage (`@0gfoundation/0g-storage-ts-sdk`), lazy-loaded so it never blocks startup. Stores an action's recompute artifacts on a decentralized data layer.
 
 ---
 
