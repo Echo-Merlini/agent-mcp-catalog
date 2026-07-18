@@ -56,6 +56,16 @@
       "status": "live"
     },
     {
+      "slug": "alchemy",
+      "name": "Alchemy",
+      "category": "On-chain data",
+      "tagline": "Multi-chain data",
+      "summary": "On-chain data suite (97 tools) — token prices, NFT holdings, transfers and full transaction history across 100+ chains. Fast, read-only market and wallet data.",
+      "example": "Fetch the current USD price of ETH and its 24h change.",
+      "custody": "read",
+      "status": "live"
+    },
+    {
       "slug": "solana-jupiter",
       "name": "Solana (Jupiter)",
       "category": "Multichain DeFi",
