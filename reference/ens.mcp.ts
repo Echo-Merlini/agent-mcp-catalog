@@ -32,6 +32,7 @@ const CONTROLLER_ABI = [
 const RESOLVER_ABI = [
   "function setText(bytes32 node, string key, string value)",
   "function setAddr(bytes32 node, address a)",
+  "function setContenthash(bytes32 node, bytes hash)",
 ];
 const REVERSE_ABI = ["function setName(string name) returns (bytes32)"];
 
@@ -49,6 +50,14 @@ function parseName(input: string): { label: string; full: string } {
   const label = String(input || "").trim().toLowerCase().replace(/\.eth$/, "");
   if (!label || label.includes(".")) throw new Error(`Pass a single .eth label (e.g. "alice"), not "${input}".`);
   return { label, full: `${label}.eth` };
+}
+
+// Any full ENS name for RECORD ops (accepts subnames like lens.trustless-ai.eth, unlike
+// parseName which is registration-only and single-label).
+function fullName(input: string): string {
+  const n = String(input || "").trim().toLowerCase();
+  if (!n || !n.includes(".")) throw new Error(`Pass a full ENS name (e.g. "lens.trustless-ai.eth"), got "${input}".`);
+  return n;
 }
 
 const eth = (wei: bigint) => `${Number(ethers.formatEther(wei)).toFixed(5).replace(/\.?0+$/, "")} ETH`;
@@ -116,6 +125,14 @@ const TOOLS = [
     inputSchema: { type: "object", properties: {
       name: { type: "string", description: 'The .eth name to set as primary, e.g. "alice.eth".' },
     }, required: ["name"] },
+  },
+  {
+    name: "ens_set_contenthash",
+    description: "Set the contenthash record on a .eth name you own — point it at an IPFS site (ipfs://<cid>), the way ENS names serve dapps via eth.limo. Pass the ipfs:// URI (or a bare CID). Returns setContenthash calldata to sign via send_transaction. Non-custodial. The name's real resolver is looked up on-chain so it won't revert on a subname with its own resolver.",
+    inputSchema: { type: "object", properties: {
+      name: { type: "string", description: 'The .eth name to point, e.g. "lens.example.eth".' },
+      contenthash: { type: "string", description: 'IPFS target — ipfs://<cid> or a bare CID (CIDv1 "bafy…" or CIDv0 "Qm…").' },
+    }, required: ["name", "contenthash"] },
   },
 ];
 
@@ -198,6 +215,68 @@ async function setPrimary(args: any): Promise<string> {
   return JSON.stringify({ setPrimaryTx: { to: REVERSE, data, value: "0", chainId: 1, description: `Set ${full} as your primary ENS name` }, name: full, note: "Sign via send_transaction. Your address will resolve back to this name." });
 }
 
+// ── ipfs://<cid> → ENSIP-7 contenthash (0xe301 ‖ CID bytes) ──
+const BASE58_ALPHA = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+function base58Decode(s: string): Uint8Array {
+  const bytes = [0];
+  for (const ch of s) {
+    let carry = BASE58_ALPHA.indexOf(ch);
+    if (carry < 0) throw new Error("Invalid base58 char");
+    for (let i = 0; i < bytes.length; i++) { carry += bytes[i] * 58; bytes[i] = carry & 0xff; carry >>= 8; }
+    while (carry > 0) { bytes.push(carry & 0xff); carry >>= 8; }
+  }
+  return new Uint8Array(bytes.reverse());
+}
+const BASE32_ALPHA = "abcdefghijklmnopqrstuvwxyz234567";
+function base32Decode(s: string): Uint8Array {
+  const lower = s.toLowerCase().replace(/=/g, "");
+  let bits = 0, value = 0; const out: number[] = [];
+  for (const ch of lower) {
+    const idx = BASE32_ALPHA.indexOf(ch);
+    if (idx < 0) throw new Error("Invalid base32 char: " + ch);
+    value = (value << 5) | idx; bits += 5;
+    if (bits >= 8) { out.push((value >>> (bits - 8)) & 0xff); bits -= 8; }
+  }
+  return new Uint8Array(out);
+}
+function ipfsToContenthash(input: string): string {
+  const cid = String(input || "").replace(/^ipfs:\/\//, "").trim();
+  let cidBytes: Uint8Array;
+  if (cid.startsWith("Qm")) {                 // CIDv0 → wrap as CIDv1 dag-pb
+    const mh = base58Decode(cid);
+    cidBytes = new Uint8Array(2 + mh.length); cidBytes[0] = 0x01; cidBytes[1] = 0x70; cidBytes.set(mh, 2);
+  } else if (cid.startsWith("b")) {           // CIDv1 base32
+    cidBytes = base32Decode(cid.slice(1));
+  } else {
+    throw new Error("Unsupported CID: use ipfs://<cid> with Qm (CIDv0) or b (CIDv1 base32)");
+  }
+  const buf = new Uint8Array(2 + cidBytes.length); buf[0] = 0xe3; buf[1] = 0x01; buf.set(cidBytes, 2);
+  return "0x" + Array.from(buf).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function setContenthash(args: any): Promise<string> {
+  const full = fullName(args.name);
+  const node = ethers.namehash(full);
+  const contenthash = ipfsToContenthash(String(args.contenthash ?? args.cid ?? args.ipfs ?? ""));
+  // Resolve the name's ACTUAL resolver from the registry — setContenthash reverts on the
+  // wrong resolver (subnames often have their own), which would make the wallet fail to
+  // estimate gas. Fall back to the PublicResolver only if the registry returns none.
+  let resolver = RESOLVER;
+  try {
+    resolver = await withProvider(async (p) => {
+      const reg = new ethers.Contract("0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e", ["function resolver(bytes32) view returns (address)"], p);
+      const r: string = await reg.resolver(node);
+      return r && r !== ethers.ZeroAddress ? r : RESOLVER;
+    });
+  } catch { /* keep default resolver */ }
+  const data = RES().encodeFunctionData("setContenthash", [node, contenthash]);
+  return JSON.stringify({
+    setContenthashTx: { to: resolver, data, value: "0", chainId: 1, description: `Set contenthash for ${full}` },
+    name: full, resolver, contenthash,
+    note: "Sign via send_transaction (you must own/manage the name). Works for on-chain resolvers that store contenthash; a name on an offchain/CCIP-read resolver sets its contenthash off-chain instead.",
+  });
+}
+
 // ─── MCP endpoint ─────────────────────────────────────────────────────────────
 
 ensRoutes.post("/", async (c) => {
@@ -221,6 +300,7 @@ ensRoutes.post("/", async (c) => {
         case "ens_set_text":         text = await setText(args); break;
         case "ens_set_addr":         text = await setAddr(args); break;
         case "ens_set_primary":      text = await setPrimary(args); break;
+        case "ens_set_contenthash":  text = await setContenthash(args); break;
         default: return c.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown tool: ${name}` } });
       }
       return c.json({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });

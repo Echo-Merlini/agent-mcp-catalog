@@ -122,8 +122,8 @@
       "name": "ENS",
       "category": "Identity / naming",
       "tagline": "Names + records",
-      "summary": "The first ENS write MCP: ens_check (availability + price), ens_register_commit / ens_register (commit-reveal purchase of a .eth name), and ens_set_text / ens_set_addr / ens_set_primary. Non-custodial calldata the user's own wallet signs; supports ENSIP-25 agent-registration records. Existing ENS MCPs are read-only.",
-      "example": "Is recompute.eth available? If so, register it and set its url record.",
+      "summary": "The first ENS write MCP: ens_check (availability + price), ens_register_commit / ens_register (commit-reveal purchase of a .eth name), ens_set_text / ens_set_addr / ens_set_primary, and ens_set_contenthash (point a name at an IPFS site — the name's real resolver is looked up on-chain, ENSIP-7 encoded). Non-custodial calldata the user's own wallet signs; supports ENSIP-25 agent-registration records and works on subnames. Existing ENS MCPs are read-only.",
+      "example": "Is recompute.eth available? If so, register it, set its url record, and point its contenthash at ipfs://<cid> so it serves via eth.limo.",
       "custody": "read + calldata",
       "reference": "reference/ens.mcp.ts",
       "status": "live"
