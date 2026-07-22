@@ -38,6 +38,14 @@
       "vectorsSha256": "5b482eee5745cc0ebc7d3f5a9789ffcc1732a5a558460e9991f2322d3db28515",
       "specSha256": "3af2c5fcfa38370da32006d68289fe4ca5a14388a2425a006db9ad5e677defa7",
       "rule": "0G Storage rootHash = flow-merkle over 256B keccak-leaf chunks (flow-pad, odd-node carry); a second independent Python impl (mcp/zerog_merkle.py), cross-checked vs the 0G SDK golden vectors + the live MCP"
+    },
+    "id-write.v0": {
+      "suite": "conformance/id-write-v0",
+      "lane": "recomputable",
+      "vectors": 4,
+      "vectorsSha256": "2724a06d850e6ddc1bb08df98890467b4fce49ff12e20ba34009b5ff97466c9f",
+      "specSha256": "94218659124d8d5f7d306381ab3de98c1974b027895b5fb7cf2cf112da8fb680",
+      "rule": "setContenthash selector || namehash(name) || abi(bytes ENSIP-7 contenthash(CID)); the CID->0xe301… multicodec encoding is a second independent Python impl (mcp/ens_contenthash.py), cross-checked vs the content-hash library golden vectors + the live MCP"
     }
   },
   "lanes": {
@@ -51,22 +59,22 @@
       "name": "ENS",
       "category": "Identity / naming",
       "tagline": "Names + records",
-      "summary": "The first ENS *write* MCP: check availability + price, register a .eth name (commit/reveal), and set records (text / addr / primary / contenthash). Non-custodial calldata the user's own wallet signs. The three record-setters are recomputable today against ens_write.v0.",
-      "example": "Set the url text record and ETH address for gobross.eth (calldata for my wallet to sign).",
+      "summary": "The first ENS *write* MCP: check availability + price, register a .eth name (commit/reveal), and set records (text / addr / primary / contenthash). Non-custodial calldata the user's own wallet signs. All four record-setters are recomputable today — text/addr/primary against ens_write.v0, contenthash against id-write.v0.",
+      "example": "Set the url text record for gobross.eth and point its contenthash at ipfs://<cid> (calldata for my wallet to sign).",
       "endpoint": "https://gateway.ensub.org/mcp/ens",
       "status": "live",
       "introspectable": true,
       "verification": "recomputable",
-      "lanes": { "recomputable": 3, "attested": 4 },
+      "lanes": { "recomputable": 4, "attested": 3 },
       "vectors": { "suite": "ens_write.v0" },
       "tools": [
-        { "name": "ens_set_addr",       "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setAddr selector || namehash(name) || abi(address)" },
+        { "name": "ens_set_addr",        "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setAddr selector || namehash(name) || abi(address)" },
         { "name": "ens_set_text",        "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setText selector || namehash(name) || abi(key,value)" },
         { "name": "ens_set_primary",     "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setName(name) on ReverseRegistrar" },
+        { "name": "ens_set_contenthash", "lane": "recomputable", "suite": "id-write.v0",  "recompute": "setContenthash selector || namehash(name) || abi(ENSIP-7 contenthash(CID))" },
         { "name": "ens_check",           "lane": "attested",  "reason": "live availability + price read (non-deterministic)" },
         { "name": "ens_register_commit", "lane": "attested",  "reason": "commit/reveal, block-timing dependent" },
-        { "name": "ens_register",        "lane": "attested",  "reason": "commit/reveal purchase, block-timing dependent" },
-        { "name": "ens_set_contenthash", "lane": "attested",  "candidate": true, "recompute": "CID -> ENSIP-7 contenthash byte-encoding is deterministic; recipe planned (id-write contenthash)" }
+        { "name": "ens_register",        "lane": "attested",  "reason": "commit/reveal purchase, block-timing dependent" }
       ]
     },
     {
@@ -223,14 +231,14 @@
   ],
   "roadmap": {
     "shipped": [
-      { "tool": "og_root", "mcp": "0g", "suite": "storage-root.v0", "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable" }
+      { "tool": "og_root", "mcp": "0g", "suite": "storage-root.v0", "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable" },
+      { "tool": "ens_set_contenthash", "mcp": "ens", "suite": "id-write.v0", "note": "ENSIP-7 CID->contenthash reimplemented independently in Python, cross-checked vs the content-hash library golden vectors + the live MCP; grades Recomputable" }
     ],
     "candidateRecipes": [
-      { "tool": "uniswap_swap_calldata",  "mcp": "uniswap", "suite": "dex-calldata.v0",   "why": "exactInputSingle calldata is deterministic ABI-encoding at fixed params/minOut" },
-      { "tool": "ens_set_contenthash",    "mcp": "ens",     "suite": "id-write.v0",       "why": "CID -> ENSIP-7 contenthash byte-encoding is deterministic" },
-      { "tool": "opensea_buy_nft",        "mcp": "opensea", "suite": "nft-fulfill.v0",    "why": "Seaport fulfillment calldata is deterministic given a specific order" }
+      { "tool": "uniswap_swap_calldata",  "mcp": "uniswap", "suite": "dex-calldata.v0",   "why": "exactInputSingle calldata is deterministic ABI-encoding, BUT its amountOutMinimum is derived from a live quote — needs a pure variant (explicit minOut, the og_root move) before it grades byte-identical" },
+      { "tool": "opensea_buy_nft",        "mcp": "opensea", "suite": "nft-fulfill.v0",    "why": "Seaport fulfillment calldata is deterministic given a specific order, but orders are live/ephemeral — hard to pin a stable vector" }
     ],
-    "note": "Each shipped recipe flips one more tool from Attested to Recomputable — the registry is the moat (og_root proved the pattern beyond ENS). Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay attested by nature."
+    "note": "Golden vectors are the key when the encoding is CUSTOM (0G flow-merkle, ENSIP-7 multicodec — both shipped). For plain ABI calldata, cast is already the independent reference (no external vectors needed). For tools that mix deterministic + live (uniswap minOut), expose a pure variant first. Live-routing/execution/data-read tools stay attested by nature."
   },
   "conformance": {
     "model": "Listing is a recomputable predicate, not a permission. Humans ratify a category's golden-vector suite once; after that a submission is graded machine-only.",
