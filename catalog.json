@@ -1,201 +1,230 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "Agent MCP Catalog",
-  "description": "MCP servers compatible with the Recomputable Agents kit. Every tool call routed through these is attested and recomputable.",
+  "description": "MCP servers you can plug into a Recomputable Agent, each with its per-tool verification lane derived from the live conformance gate. A tool is 'recomputable' only when a hash-pinned golden-vector suite can re-derive its output from public rules; otherwise it is honestly 'attested'. Don't trust. Recompute.",
   "kit": "https://github.com/Echo-Merlini/verifiable-agents",
-  "howToAdd": "Gateway admin -> /admin/mcps -> Add MCP server (name, endpoint URL, auth). Then assign per-agent. Calls flow through the attestation pipeline and are recomputable on /verify.",
+  "tryIt": "https://demo.verticecriativo.pt/conformance",
+  "introspectApi": "https://gateway.ensub.org/conformance/introspect",
+  "howToAdd": "Gateway admin -> /admin/mcps -> Add MCP server (name, PUBLIC https endpoint, auth). Assign per-agent. Every call flows through the attestation pipeline; tools with a live recipe grade Recomputable on the conformance page, the rest list Attested.",
+  "lanesDerivedFrom": "live POST /conformance/introspect on 2026-07-22 — not hand-asserted",
+  "suites": {
+    "ens_write.v0": {
+      "suite": "conformance/ens-write-v0",
+      "lane": "recomputable",
+      "vectors": 5,
+      "vectorsSha256": "f4fec32aafb2dcc19c537e29339fb86db8d9e770cd20d25b8ccfab1fc5e333a7",
+      "specSha256": "2e5ba8f8518677ef9c305c0eaee813111505ce45550693dd6898daf5dfc340e8",
+      "rule": "calldata = resolver-fn selector || namehash(name) || abi.encode(args); independently derived from EIP-137 + public resolver ABI, no live read"
+    },
+    "chronicle_checkpoint_continuity.v0": {
+      "suite": "conformance/chronicle-checkpoint-continuity-v0",
+      "lane": "recomputable",
+      "vectors": 20,
+      "vectorsSha256": "c369bd3924f5ce053c698c903345e3859e75a4daabffed1720d11351f81def93",
+      "specSha256": "280b6c8106e288f1c9db4535b85bb7ff04a52d4fa8507be27ed5903b80a14782",
+      "rule": "pairwise checkpoint-continuity gate; two independently-authored implementations, source closed, 20/20; recorded in trustless-ai/recompute-kit"
+    },
+    "communication_chain.v0": {
+      "suite": "conformance/communication-chain-v0",
+      "lane": "recomputable",
+      "vectors": 5,
+      "vectorsSha256": "d9d63cc82903d89c220f62f22035ff1901619124707a2acccd293cfc5c2dec6e",
+      "rule": "Who / Said what / Through which channel / To whom / With what effect — narrative walk; the 'effect' link recomputes from a LIVE ENS MCP call"
+    }
+  },
+  "lanes": {
+    "recomputable": "output re-derived end-to-end from a hash-pinned golden-vector suite, no human in the loop (green badge)",
+    "attested": "live tool with no recipe yet — vouched for, not recomputable (amber badge)",
+    "candidate": "attested today, but the output is deterministic so a recompute recipe is FEASIBLE and planned (amber badge, roadmap tag)"
+  },
   "mcps": [
     {
-      "slug": "opensea",
-      "name": "OpenSea",
-      "category": "NFT market",
-      "tagline": "NFT market",
-      "summary": "Reads collection stats, floor prices and live listings, and prepares buy calldata so the agent can surface real NFTs you can actually purchase.",
-      "example": "Show me some NFTs currently listed in the goblinarinos721 collection on OpenSea, with images and prices.",
-      "custody": "read + calldata",
+      "slug": "ens",
+      "name": "ENS",
+      "category": "Identity / naming",
+      "tagline": "Names + records",
+      "summary": "The first ENS *write* MCP: check availability + price, register a .eth name (commit/reveal), and set records (text / addr / primary / contenthash). Non-custodial calldata the user's own wallet signs. The three record-setters are recomputable today against ens_write.v0.",
+      "example": "Set the url text record and ETH address for gobross.eth (calldata for my wallet to sign).",
+      "endpoint": "https://gateway.ensub.org/mcp/ens",
       "status": "live",
+      "introspectable": true,
       "verification": "recomputable",
-      "suite": "nft-market.v0",
-      "tier": "B",
-      "pricingModel": "Term + metered"
-    },
-    {
-      "slug": "lifi",
-      "name": "LI.FI",
-      "category": "Cross-chain",
-      "tagline": "Cross-chain router",
-      "summary": "Finds the best bridge-and-swap route across 30+ chains for ETH and ERC-20 tokens, returning a ready-to-sign quote with fees and timing.",
-      "example": "Find the best route to bridge 0.1 ETH from Ethereum to Base and summarise it.",
-      "custody": "read + calldata",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "bridge-quote.v0",
-      "tier": "B",
-      "pricingModel": "Term (light meter)"
-    },
-    {
-      "slug": "symbiosis",
-      "name": "Symbiosis",
-      "category": "Cross-chain",
-      "tagline": "Cross-chain swaps",
-      "summary": "Returns read-only quotes and calldata to move value between chains in a single step.",
-      "example": "Quote a cross-chain swap of 100 USDC from Ethereum to Arbitrum and summarise the route.",
-      "custody": "read + calldata",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "bridge-quote.v0",
-      "tier": "B",
-      "pricingModel": "Term"
-    },
-    {
-      "slug": "1inch",
-      "name": "1inch",
-      "category": "DEX aggregator",
-      "tagline": "DEX aggregator",
-      "summary": "Finds the best swap price across dozens of liquidity sources, plus limit orders and portfolio data. Swaps ask for the user's wallet to sign.",
-      "example": "Show the best price to swap 1 ETH into USDC on Ethereum (quote only).",
-      "custody": "read + calldata",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "dex-quote.v0",
-      "tier": "B",
-      "pricingModel": "Term + metered"
-    },
-    {
-      "slug": "flashbots",
-      "name": "Flashbots",
-      "category": "MEV / execution",
-      "tagline": "MEV / blocks",
-      "summary": "Private-mempool protection: sends transactions privately, simulates bundles and checks status, shielding trades from front-running and sandwich MEV.",
-      "example": "Check the latest Ethereum block and its base fee.",
-      "custody": "read + private submit",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "execution.v0",
-      "tier": "A",
-      "pricingModel": "Perpetual"
-    },
-    {
-      "slug": "alchemy",
-      "name": "Alchemy",
-      "category": "On-chain data",
-      "tagline": "Multi-chain data",
-      "summary": "On-chain data suite (97 tools) — token prices, NFT holdings, transfers and full transaction history across 100+ chains. Fast, read-only market and wallet data.",
-      "example": "Fetch the current USD price of ETH and its 24h change.",
-      "custody": "read",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "data-read.v0",
-      "tier": "B",
-      "pricingModel": "Term + metered"
-    },
-    {
-      "slug": "solana-jupiter",
-      "name": "Solana (Jupiter)",
-      "category": "Multichain DeFi",
-      "tagline": "Solana DeFi",
-      "summary": "Jupiter, Solana's DeFi hub: looks up token prices, market cap, liquidity and swap routes across every Solana DEX. Multichain reach beyond Ethereum.",
-      "example": "Look up BONK and give me its price, market cap and liquidity.",
-      "custody": "read",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "dex-quote.v0",
-      "tier": "B",
-      "pricingModel": "Term (light meter)"
-    },
-    {
-      "slug": "recompute-kit",
-      "name": "Recompute Kit",
-      "category": "Verification",
-      "tagline": "Verify by recompute",
-      "summary": "The house verifier. Re-derives a claim from the primary artifact, pinned to an exact reference, with evidence attached. Don't trust - recompute.",
-      "example": "Explain step by step how you would verify an on-chain attestation by recomputing it from the primary artifact.",
-      "custody": "read",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "recompute-kit/conformance",
-      "tier": "A",
-      "pricingModel": "Perpetual / free"
-    },
-    {
-      "slug": "forensics",
-      "name": "Forensics",
-      "category": "Security",
-      "tagline": "Trace funds",
-      "summary": "Traces fund flows in and out of flagged addresses across chains and serves a scam-victim recovery playbook, following the money to downstream wallets.",
-      "example": "Fetch the scam-victim recovery playbook and summarise the first steps a victim should take.",
-      "custody": "read",
-      "status": "live",
-      "verification": "recomputable",
-      "suite": "data-read.v0",
-      "tier": "B",
-      "pricingModel": "Term + metered"
+      "lanes": { "recomputable": 3, "attested": 4 },
+      "vectors": { "suite": "ens_write.v0" },
+      "tools": [
+        { "name": "ens_set_addr",       "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setAddr selector || namehash(name) || abi(address)" },
+        { "name": "ens_set_text",        "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setText selector || namehash(name) || abi(key,value)" },
+        { "name": "ens_set_primary",     "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setName(name) on ReverseRegistrar" },
+        { "name": "ens_check",           "lane": "attested",  "reason": "live availability + price read (non-deterministic)" },
+        { "name": "ens_register_commit", "lane": "attested",  "reason": "commit/reveal, block-timing dependent" },
+        { "name": "ens_register",        "lane": "attested",  "reason": "commit/reveal purchase, block-timing dependent" },
+        { "name": "ens_set_contenthash", "lane": "attested",  "candidate": true, "recompute": "CID -> ENSIP-7 contenthash byte-encoding is deterministic; recipe planned (id-write contenthash)" }
+      ]
     },
     {
       "slug": "uniswap",
       "name": "Uniswap",
       "category": "DEX",
       "tagline": "Direct swaps",
-      "summary": "Direct Uniswap v3: QuoterV2 price quotes (best fee tier auto-selected) + SwapRouter02 exactInputSingle calldata the user's own wallet signs. Ethereum + Base. Not an aggregator. Non-custodial and recomputable.",
+      "summary": "Direct Uniswap v3: QuoterV2 price + SwapRouter02 exactInputSingle calldata the user's own wallet signs. Not an aggregator. The quote is a live pool read (attested); the swap calldata is deterministic ABI-encoding once params are fixed — a strong recipe candidate.",
       "example": "Swap 0.1 ETH into USDC on Uniswap (calldata for my wallet to sign).",
-      "custody": "read + calldata",
+      "endpoint": "https://gateway.ensub.org/mcp/uniswap",
       "status": "live",
-      "verification": "recomputable",
-      "suite": "dex-quote.v0",
-      "tier": "C",
-      "pricingModel": "Term + value-priced"
+      "introspectable": true,
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": 2 },
+      "vectors": null,
+      "tools": [
+        { "name": "uniswap_quote",          "lane": "attested", "reason": "live QuoterV2 on-chain read; price varies with pool state" },
+        { "name": "uniswap_swap_calldata",  "lane": "attested", "candidate": true, "recompute": "SwapRouter02 exactInputSingle calldata is deterministic ABI-encoding given fixed tokenIn/out, fee, recipient, amountIn, minOut; recipe planned (dex-calldata.v0)" }
+      ]
     },
     {
       "slug": "0g",
       "name": "0G",
       "category": "Decentralized storage",
       "tagline": "Decentralized artifacts",
-      "summary": "Writes/reads recompute artifacts (raw input / output / manifest blobs) on 0G Storage via @0gfoundation/0g-storage-ts-sdk, so agent actions are recomputable from decentralized data, not a single server. og_store_artifact returns a content-addressed rootHash; og_fetch_artifact retrieves it.",
+      "summary": "Stores/fetches an action's recompute artifacts on 0G Storage. og_store_artifact returns a content-addressed rootHash (a merkle over the content bytes) — deterministic, so a storage-root recipe is feasible; og_fetch is a content-addressed read (verify-only: fetched bytes must hash to the requested root).",
       "example": "Store this action's recompute artifact on 0G and return its root hash.",
-      "custody": "read + write",
+      "endpoint": "https://gateway.ensub.org/mcp/zerog",
       "status": "live",
-      "verification": "recomputable",
-      "suite": "storage.v0",
-      "tier": "C",
-      "pricingModel": "Term + metered (bytes)"
+      "introspectable": true,
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": 2 },
+      "vectors": null,
+      "tools": [
+        { "name": "og_store_artifact", "lane": "attested", "candidate": true, "recompute": "0G storage rootHash = merkle over content chunks; independently recomputable from the bytes; recipe planned (storage-root.v0)" },
+        { "name": "og_fetch_artifact", "lane": "attested", "reason": "content-addressed read; verify-only — fetched bytes must hash back to the requested root" }
+      ]
     },
     {
-      "slug": "ens",
-      "name": "ENS",
-      "category": "Identity / naming",
-      "tagline": "Names + records",
-      "summary": "The first ENS write MCP: ens_check (availability + price), ens_register_commit / ens_register (commit-reveal purchase of a .eth name), ens_set_text / ens_set_addr / ens_set_primary, and ens_set_contenthash (point a name at an IPFS site — the name's real resolver is looked up on-chain, ENSIP-7 encoded). Non-custodial calldata the user's own wallet signs; supports ENSIP-25 agent-registration records and works on subnames. Existing ENS MCPs are read-only.",
-      "example": "Is recompute.eth available? If so, register it, set its url record, and point its contenthash at ipfs://<cid> so it serves via eth.limo.",
-      "custody": "read + calldata",
+      "slug": "opensea",
+      "name": "OpenSea",
+      "category": "NFT market",
+      "tagline": "NFT market",
+      "summary": "Reads collection stats, floor prices and live listings, and prepares Seaport buy calldata for real NFTs. The reads are live market data (attested); the buy calldata is deterministic given a specific order — a recipe candidate.",
+      "example": "Show NFTs currently listed in the goblinarinos721 collection, with images and prices.",
+      "endpoint": "https://gateway.ensub.org/mcp/opensea",
       "status": "live",
-      "verification": "recomputable",
-      "suite": "id-write.v0",
-      "tier": "C",
-      "pricingModel": "Term + value-priced"
+      "introspectable": true,
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": 4 },
+      "vectors": null,
+      "tools": [
+        { "name": "opensea_get_nft",              "lane": "attested", "reason": "live market read" },
+        { "name": "opensea_get_collection_stats", "lane": "attested", "reason": "live market read" },
+        { "name": "opensea_get_listings",         "lane": "attested", "reason": "live market read" },
+        { "name": "opensea_buy_nft",              "lane": "attested", "candidate": true, "recompute": "Seaport fulfillBasicOrder calldata is deterministic given the order params; recipe candidate" }
+      ]
+    },
+    {
+      "slug": "lifi",
+      "name": "LI.FI",
+      "category": "Cross-chain",
+      "tagline": "Cross-chain router",
+      "summary": "Finds the best bridge-and-swap route across 30+ chains and returns a ready-to-sign quote. The route depends on live cross-chain liquidity, so it is attested, not recomputable.",
+      "example": "Find the best route to bridge 0.1 ETH from Ethereum to Base.",
+      "endpoint": "https://gateway.ensub.org/mcp/lifi",
+      "status": "live",
+      "introspectable": true,
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": 3 },
+      "vectors": null,
+      "tools": [
+        { "name": "get_supported_chains", "lane": "attested", "reason": "live chain list" },
+        { "name": "search_tokens",        "lane": "attested", "reason": "live token index" },
+        { "name": "get_swap_calldata",    "lane": "attested", "reason": "depends on live cross-chain routing (non-deterministic)" }
+      ]
+    },
+    {
+      "slug": "flashbots",
+      "name": "Flashbots",
+      "category": "MEV / execution",
+      "tagline": "Private execution",
+      "summary": "Private-mempool protection: submits transactions privately, simulates bundles and checks status, shielding trades from front-running and sandwich MEV. Execution/network-bound, so attested.",
+      "example": "Check the latest Ethereum block and its base fee.",
+      "endpoint": "https://gateway.ensub.org/mcp/flashbots",
+      "status": "live",
+      "introspectable": true,
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": 4 },
+      "vectors": null,
+      "tools": [
+        { "name": "flashbots_send_private_tx", "lane": "attested", "reason": "private network submit" },
+        { "name": "flashbots_simulate_tx",     "lane": "attested", "reason": "live simulation against head state" },
+        { "name": "flashbots_send_bundle",     "lane": "attested", "reason": "private bundle submit" },
+        { "name": "flashbots_tx_status",       "lane": "attested", "reason": "live status read" }
+      ]
+    },
+    {
+      "slug": "alchemy",
+      "name": "Alchemy",
+      "category": "On-chain data",
+      "tagline": "Multi-chain data",
+      "summary": "On-chain data suite (~97 tools) — token prices, NFT holdings, transfers and full transaction history across 100+ chains. All live reads (attested). Its tools/list is not exposed in the MCP-standard shape the gate introspects, so it is graded at the MCP level, not per tool.",
+      "example": "Fetch the current USD price of ETH and its 24h change.",
+      "endpoint": "https://gateway.ensub.org/mcp/alchemy",
+      "status": "live",
+      "introspectable": false,
+      "introspectNote": "POST /conformance/introspect returns HTTP 400 — tools/list not in the standard shape; all tools are live reads = attested",
+      "verification": "attested",
+      "lanes": { "recomputable": 0, "attested": null },
+      "vectors": null,
+      "tools": []
+    },
+    {
+      "slug": "recompute-kit",
+      "name": "Recompute Kit",
+      "category": "Verification",
+      "tagline": "The house verifier",
+      "summary": "Not graded — it IS the recomputer. Re-derives a claim from the primary artifact at a pinned ref, runs golden-vector suites, and emits portable receiptos.evidence_capsule.v0 receipts. This is the engine the whole catalog's lanes come from.",
+      "example": "Recompute this on-chain attestation from its primary artifact and show the evidence.",
+      "endpoint": null,
+      "status": "live",
+      "introspectable": false,
+      "verification": "verifier",
+      "lanes": { "recomputable": 0, "attested": 0 },
+      "vectors": { "suite": "recompute-kit/conformance" },
+      "tools": [
+        { "name": "recompute_onchain",        "lane": "verifier" },
+        { "name": "recompute_receipt_proof",  "lane": "verifier" },
+        { "name": "recompute_storage_proof",  "lane": "verifier" },
+        { "name": "recompute_commitment",     "lane": "verifier" },
+        { "name": "recompute_step",           "lane": "verifier" },
+        { "name": "verify_claim",             "lane": "verifier" }
+      ]
     },
     {
       "slug": "conformance-verify",
       "name": "Conformance / Verify",
       "category": "Verification",
-      "tagline": "Grade any MCP against a hash-pinned golden-vector suite",
-      "summary": "The machine gate as a callable verb (conformance_run): recompute a suite's bytes against its SHA-256 (fail-closed on mismatch), run every golden vector against a candidate, return a tri-state verdict. Powers the Community-lane listing and the Recomputable badge — no human in the per-submission path.",
-      "example": "conformance_run(suite: dex-quote.v0, endpoint) -> 12/12 reproduced -> auto-list, Recomputable badge",
-      "custody": "read",
-      "status": "planned",
-      "verification": "recomputable",
-      "suite": "recompute-kit/conformance",
-      "tier": "A",
-      "pricingModel": "Perpetual / free"
+      "tagline": "Grade any MCP against a hash-pinned suite",
+      "summary": "The machine gate as a callable verb (conformance_run) plus a self-service /conformance/introspect endpoint: point it at any MCP, it tools/list's it, matches each tool to the recipe registry, grades the matches against the independent rule-derivation, and returns a tri-state verdict + a portable receipt. Live — this is what powers this catalog.",
+      "example": "conformance_run(suite: ens_write.v0, endpoint) -> 5/5 reproduced -> Recomputable badge + downloadable receipt",
+      "endpoint": "https://gateway.ensub.org/conformance/introspect",
+      "status": "live",
+      "introspectable": false,
+      "verification": "verifier",
+      "lanes": { "recomputable": 0, "attested": 0 },
+      "vectors": { "suite": "recompute-kit/conformance" },
+      "tools": [
+        { "name": "conformance_run", "lane": "verifier" }
+      ]
     }
   ],
+  "roadmap": {
+    "candidateRecipes": [
+      { "tool": "og_store_artifact",      "mcp": "0g",      "suite": "storage-root.v0",   "why": "0G rootHash is a merkle over content bytes — independently recomputable" },
+      { "tool": "uniswap_swap_calldata",  "mcp": "uniswap", "suite": "dex-calldata.v0",   "why": "exactInputSingle calldata is deterministic ABI-encoding at fixed params/minOut" },
+      { "tool": "ens_set_contenthash",    "mcp": "ens",     "suite": "id-write.v0",       "why": "CID -> ENSIP-7 contenthash byte-encoding is deterministic" },
+      { "tool": "opensea_buy_nft",        "mcp": "opensea", "suite": "nft-fulfill.v0",    "why": "Seaport fulfillment calldata is deterministic given a specific order" }
+    ],
+    "note": "These are ATTESTED today. Each shipped recipe flips one more tool from Attested to Recomputable — the registry is the moat. Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay attested by nature."
+  },
   "conformance": {
     "model": "Listing is a recomputable predicate, not a permission. Humans ratify a category's golden-vector suite once; after that a submission is graded machine-only.",
-    "lanes": {
-      "recomputable": "reproduced end-to-end from golden vectors, no human in the loop (green badge)",
-      "attested": "vouched for, not fully recomputable (amber badge) — the exception lane"
-    },
-    "suitePinning": "Each category suite is content-hashed (SHA-256 over committed blob bytes); a submission is graded against the hash, and a mismatch is unverifiable, never a silent pass.",
-    "provenOn": "chronicle_checkpoint_continuity.v0 — two independently-authored implementations, source closed, 20/20; recorded in trustless-ai/recompute-kit conformance.",
-    "machineGate": "hash-pinned suite -> independent recomputation -> auto-record"
+    "suitePinning": "Each suite is content-hashed (SHA-256 over committed blob bytes); a submission is graded against the hash, and a mismatch is unverifiable, never a silent pass.",
+    "provenOn": "chronicle_checkpoint_continuity.v0 — two independently-authored implementations, source closed, 20/20; recorded in trustless-ai/recompute-kit.",
+    "machineGate": "hash-pinned suite -> independent recomputation -> tri-state verdict -> portable receipt"
   }
 }
