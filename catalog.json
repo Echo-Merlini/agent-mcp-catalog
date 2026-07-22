@@ -30,6 +30,14 @@
       "vectors": 5,
       "vectorsSha256": "d9d63cc82903d89c220f62f22035ff1901619124707a2acccd293cfc5c2dec6e",
       "rule": "Who / Said what / Through which channel / To whom / With what effect — narrative walk; the 'effect' link recomputes from a LIVE ENS MCP call"
+    },
+    "storage-root.v0": {
+      "suite": "conformance/storage-root-v0",
+      "lane": "recomputable",
+      "vectors": 5,
+      "vectorsSha256": "5b482eee5745cc0ebc7d3f5a9789ffcc1732a5a558460e9991f2322d3db28515",
+      "specSha256": "3af2c5fcfa38370da32006d68289fe4ca5a14388a2425a006db9ad5e677defa7",
+      "rule": "0G Storage rootHash = flow-merkle over 256B keccak-leaf chunks (flow-pad, odd-node carry); a second independent Python impl (mcp/zerog_merkle.py), cross-checked vs the 0G SDK golden vectors + the live MCP"
     }
   },
   "lanes": {
@@ -84,16 +92,17 @@
       "name": "0G",
       "category": "Decentralized storage",
       "tagline": "Decentralized artifacts",
-      "summary": "Stores/fetches an action's recompute artifacts on 0G Storage. og_store_artifact returns a content-addressed rootHash (a merkle over the content bytes) — deterministic, so a storage-root recipe is feasible; og_fetch is a content-addressed read (verify-only: fetched bytes must hash to the requested root).",
-      "example": "Store this action's recompute artifact on 0G and return its root hash.",
+      "summary": "Stores/fetches an action's recompute artifacts on 0G Storage. og_root returns the pure content-addressed rootHash WITHOUT uploading — recomputable against storage-root.v0 by a second independent flow-merkle implementation. og_store performs the live upload (an action); og_fetch is a content-addressed read.",
+      "example": "Compute the 0G root of this artifact (og_root), then store it and return the same rootHash.",
       "endpoint": "https://gateway.ensub.org/mcp/zerog",
       "status": "live",
       "introspectable": true,
-      "verification": "attested",
-      "lanes": { "recomputable": 0, "attested": 2 },
-      "vectors": null,
+      "verification": "recomputable",
+      "lanes": { "recomputable": 1, "attested": 2 },
+      "vectors": { "suite": "storage-root.v0" },
       "tools": [
-        { "name": "og_store_artifact", "lane": "attested", "candidate": true, "recompute": "0G storage rootHash = merkle over content chunks; independently recomputable from the bytes; recipe planned (storage-root.v0)" },
+        { "name": "og_root",           "lane": "recomputable", "suite": "storage-root.v0", "recompute": "0G flow-merkle rootHash(content): 256B chunks, keccak256 leaves, flow-pad, odd-node carry" },
+        { "name": "og_store_artifact", "lane": "attested", "reason": "live upload (gas + network) = an action; its returned rootHash equals storage-root.v0 and is recomputable offline via og_root" },
         { "name": "og_fetch_artifact", "lane": "attested", "reason": "content-addressed read; verify-only — fetched bytes must hash back to the requested root" }
       ]
     },
@@ -213,13 +222,15 @@
     }
   ],
   "roadmap": {
+    "shipped": [
+      { "tool": "og_root", "mcp": "0g", "suite": "storage-root.v0", "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable" }
+    ],
     "candidateRecipes": [
-      { "tool": "og_store_artifact",      "mcp": "0g",      "suite": "storage-root.v0",   "why": "0G rootHash is a merkle over content bytes — independently recomputable" },
       { "tool": "uniswap_swap_calldata",  "mcp": "uniswap", "suite": "dex-calldata.v0",   "why": "exactInputSingle calldata is deterministic ABI-encoding at fixed params/minOut" },
       { "tool": "ens_set_contenthash",    "mcp": "ens",     "suite": "id-write.v0",       "why": "CID -> ENSIP-7 contenthash byte-encoding is deterministic" },
       { "tool": "opensea_buy_nft",        "mcp": "opensea", "suite": "nft-fulfill.v0",    "why": "Seaport fulfillment calldata is deterministic given a specific order" }
     ],
-    "note": "These are ATTESTED today. Each shipped recipe flips one more tool from Attested to Recomputable — the registry is the moat. Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay attested by nature."
+    "note": "Each shipped recipe flips one more tool from Attested to Recomputable — the registry is the moat (og_root proved the pattern beyond ENS). Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay attested by nature."
   },
   "conformance": {
     "model": "Listing is a recomputable predicate, not a permission. Humans ratify a category's golden-vector suite once; after that a submission is graded machine-only.",

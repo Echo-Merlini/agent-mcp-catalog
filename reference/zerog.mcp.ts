@@ -31,6 +31,17 @@ const TOOLS = [
     },
   },
   {
+    name: "og_root",
+    description: "Compute the 0G Storage rootHash for content WITHOUT uploading — the pure content-addressed flow-merkle root. Read-only, no gas, no network write: the deterministic derivation anyone can independently recompute from the bytes (256-byte chunks, keccak256 leaves, 0G flow-merkle). Use to verify what og_store_artifact WILL return, or to check a stored artifact's handle offline.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        content: { type: "string", description: "The artifact content (UTF-8 text) to compute the 0G root of." },
+      },
+      required: ["content"],
+    },
+  },
+  {
     name: "og_fetch_artifact",
     description: "Fetch an artifact back from 0G Storage by its rootHash and return its content — so anyone can independently retrieve the exact bytes an agent action was recomputed from.",
     inputSchema: {
@@ -42,6 +53,32 @@ const TOOLS = [
     },
   },
 ];
+
+// Read-only root computation: same 0G flow-merkle the store path uses (ZgFile.merkleTree),
+// but NO upload — deterministic, gas-free, independently recomputable from the bytes.
+async function root(args: any): Promise<string> {
+  const content = String(args?.content ?? "");
+  if (!content) return JSON.stringify({ error: "content is required" });
+  const { ZgFile } = await import("@0gfoundation/0g-storage-ts-sdk");
+  const tmp = path.join(os.tmpdir(), `ogr-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`);
+  fs.writeFileSync(tmp, content, "utf8");
+  try {
+    const file = await ZgFile.fromFilePath(tmp);
+    const [tree, treeErr] = await file.merkleTree();
+    await file.close();
+    if (treeErr) return JSON.stringify({ error: `0G merkleTree failed: ${treeErr}` });
+    return JSON.stringify({
+      rootHash: tree?.rootHash(),
+      bytes: Buffer.byteLength(content, "utf8"),
+      network: "0G Galileo Storage",
+      note: "Pure content-addressed root (no upload). Independently recomputable: 256-byte chunks, keccak256 leaves, 0G flow-merkle.",
+    });
+  } catch (e: any) {
+    return JSON.stringify({ error: e?.message ?? String(e) });
+  } finally {
+    try { fs.unlinkSync(tmp); } catch {}
+  }
+}
 
 async function store(args: any): Promise<string> {
   const key = pk();
@@ -123,6 +160,7 @@ zerogRoutes.post("/", async (c) => {
     try {
       let text: string;
       if      (name === "og_store_artifact") text = await store(args);
+      else if (name === "og_root")           text = await root(args);
       else if (name === "og_fetch_artifact") text = await fetchArtifact(args);
       else return c.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown tool: ${name}` } });
       return c.json({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
