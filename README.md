@@ -29,7 +29,7 @@ Lanes are `recomputable / attested`, straight from the gate. **Recomputable** me
 | **ENS** | Identity / naming | **4 recomputable** / 3 attested | `ens_set_addr` · `ens_set_text` · `ens_set_primary` (`ens_write.v0`) + `ens_set_contenthash` (`id-write.v0`, ENSIP-7). Registration/availability are attested. |
 | **0G** | Decentralized storage | **1 recomputable** / 2 attested | `og_root` graded against `storage-root.v0` (pure flow-merkle, no upload). `og_store` is the live upload (attested action); `og_fetch` a content read. |
 | **Uniswap** | DEX | **1 recomputable** / 2 attested | `uniswap_encode_swap` (pure encoder, explicit minOut) graded against `dex-calldata.v0`. `uniswap_quote` + `uniswap_swap_calldata` are live QuoterV2 reads (attested). |
-| **OpenSea** | NFT market | 0 / 4 | `opensea_buy_nft` is a **candidate** (deterministic Seaport calldata); reads are live market data. |
+| **OpenSea** | NFT market | **1 recomputable** / 4 attested | `opensea_encode_fulfillment` (pure Seaport encoder, explicit order) graded against `nft-fulfill.v0`. Reads + the live-order `opensea_buy_nft` are attested. |
 | **LI.FI** | Cross-chain | 0 / 3 | Routes depend on live cross-chain liquidity — attested by nature. |
 | **Flashbots** | MEV / execution | 0 / 4 | Private submit / simulate / status — execution-bound, attested by nature. |
 | **Alchemy** | On-chain data | 0 / ~97 | Live multi-chain reads; `tools/list` isn't in the standard shape, so it's graded at MCP level (attested). |
@@ -44,29 +44,35 @@ Honest snapshot — this is what actually has a recipe **right now**, not a visi
   - the three ENS record-setters, against **`ens_write.v0`** — 5 hash-pinned vectors, `expected` independently derived from EIP-137 namehash + the public resolver ABI (no live read);
   - ENS **`ens_set_contenthash`**, against **`id-write.v0`** — the ENSIP-7 CID→contenthash encoding reimplemented as a *second, independent* Python encoder (not the `@ensdomains/content-hash` JS lib the MCP uses), cross-checked against that library's own golden vectors **and** the live MCP;
   - 0G's **`og_root`**, against **`storage-root.v0`** — the 0G flow-merkle root reimplemented as a *second, independent* Python implementation (not the SDK compared to itself), cross-checked against the 0G SDK's own golden vectors **and** the live MCP;
-  - Uniswap's **`uniswap_encode_swap`**, against **`dex-calldata.v0`** — a *pure encoder* (explicit `amountOutMinimum`, no live quote), whose `exactInputSingle` calldata is plain ABI, so `cast` is the independent reference.
+  - Uniswap's **`uniswap_encode_swap`**, against **`dex-calldata.v0`** — a *pure encoder* (explicit `amountOutMinimum`, no live quote), whose `exactInputSingle` calldata is plain ABI, so `cast` is the independent reference;
+  - OpenSea's **`opensea_encode_fulfillment`**, against **`nft-fulfill.v0`** — a *pure encoder* from explicit Seaport `BasicOrderParameters`, validated byte-for-byte (1674 chars) against a real `fulfillment_data` payload and the live `opensea_buy_nft`.
 
-  Grade any of them yourself: point the conformance page at `https://gateway.ensub.org/mcp/ens`, `/mcp/zerog`, or `/mcp/uniswap`.
+  Grade any of them yourself: point the conformance page at `https://gateway.ensub.org/mcp/ens`, `/mcp/zerog`, `/mcp/uniswap`, or `/mcp/opensea`.
 - **Attested:** every other live tool. A real capability that flows through the attestation pipeline, but with no independent recipe, so it honestly lists Attested rather than pretending. (Includes `og_store_artifact` — a live upload is an *action*, not a pure derivation; its returned root still equals `storage-root.v0` and is checkable offline with `og_root`.)
-- **Candidate (roadmap):** attested tools whose output *is* deterministic, so a recipe is feasible. Each one shipped flips a tool from Attested → Recomputable — **the recipe registry is the moat.**
+- **Candidate (roadmap):** *empty* — every recomputable-in-principle tool now has a shipped recipe. What stays Attested (LI.FI routes, Flashbots submits, Alchemy reads) is Attested *by nature*: its output depends on live state no one can reproduce offline, so there's no derivation to recompute.
 
-| Candidate tool | MCP | Planned suite | Why it's recomputable-in-principle |
-| --- | --- | --- | --- |
-| `opensea_buy_nft` | OpenSea | `nft-fulfill.v0` | Seaport fulfillment calldata is deterministic given a specific order — but orders are live/ephemeral, so there's no stable vector to pin |
+**The three patterns, all shipped:**
 
-> **Shipped:** `og_root` / `storage-root.v0` (0G) and `ens_set_contenthash` / `id-write.v0` (ENSIP-7) — the *custom-encoding* cases (a merkle root; a multicodec CID), each a from-spec independent reimplementation validated against published golden vectors. And `uniswap_encode_swap` / `dex-calldata.v0` (Uniswap) — the *pure-variant* case: a new read-only encoder with explicit `amountOutMinimum`, so plain-ABI `exactInputSingle` calldata is recomputable via `cast`, while the live-quote swap stays Attested. Three patterns, one registry.
+| Pattern | When it applies | Shipped recipes |
+| --- | --- | --- |
+| **Custom encoding** → from-spec impl validated vs published golden vectors | non-ABI (a merkle root, a multicodec CID) | `og_root`/`storage-root.v0` (0G) · `ens_set_contenthash`/`id-write.v0` (ENSIP-7) |
+| **Plain ABI** → `cast` is the independent reference for free | standard calldata | the three ENS setters/`ens_write.v0` |
+| **Mixed deterministic + live** → expose a pure read-only variant, then it's plain ABI | a live value in the output | `uniswap_encode_swap`/`dex-calldata.v0` · `opensea_encode_fulfillment`/`nft-fulfill.v0` |
+
+The registry is the moat: three encoding families, seven suites, each MCP honest about its recomputable slice vs its attested action — all graded by the same machine gate.
 
 Live-routing, execution, and data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay Attested by nature — their output depends on state no one can reproduce offline.
 
 ## The suites that exist
 
-Six golden-vector suites are real today. Each is content-hashed (SHA-256 over the committed blob bytes); a submission is graded against the hash, and a mismatch is `unverifiable`, never a silent pass.
+Seven golden-vector suites are real today. Each is content-hashed (SHA-256 over the committed blob bytes); a submission is graded against the hash, and a mismatch is `unverifiable`, never a silent pass.
 
 | Suite | Vectors | `vectorsSha256` | Lane |
 | --- | --- | --- | --- |
 | `ens_write.v0` | 5 | `f4fec32a…333a7` | recomputable |
 | `id-write.v0` | 4 | `2724a06d…6c9f` | recomputable |
 | `dex-calldata.v0` | 3 | `0f88616f…e282` | recomputable |
+| `nft-fulfill.v0` | 2 | `41d91048…ffce` | recomputable |
 | `storage-root.v0` | 5 | `5b482eee…8515` | recomputable |
 | `chronicle_checkpoint_continuity.v0` | 20 | `c369bd39…def93` | recomputable |
 | `communication_chain.v0` | 5 | `d9d63cc8…ec6e` | recomputable |
@@ -87,6 +93,7 @@ Actual MCP server code that runs in the kit gateway (self-contained: Hono + ethe
 
 - [`reference/ens.mcp.ts`](./reference/ens.mcp.ts) — **ENS** (the first ENS *write* MCP). `ens_check` + `ens_register_commit` / `ens_register` + `ens_set_text` / `ens_set_addr` / `ens_set_primary`. The three setters are the recomputable core.
 - [`reference/uniswap.mcp.ts`](./reference/uniswap.mcp.ts) — **Uniswap** direct swaps. `uniswap_quote` (QuoterV2) + `uniswap_swap_calldata` (live quote → swap) + `uniswap_encode_swap` (pure `exactInputSingle` encoder, explicit minOut — the recomputable one). Ethereum + Base, RPC failover.
+- [`reference/opensea.mcp.ts`](./reference/opensea.mcp.ts) — **OpenSea** NFT market. `opensea_get_*` reads + `opensea_buy_nft` (live order → Seaport calldata) + `opensea_encode_fulfillment` (pure `fulfillBasicOrder` encoder from explicit params — the recomputable one).
 - [`reference/zerog.mcp.ts`](./reference/zerog.mcp.ts) — **0G** decentralized storage. `og_root` (pure flow-merkle root, no upload — the recomputable one) + `og_store_artifact` + `og_fetch_artifact` on 0G Storage, lazy-loaded so it never blocks startup.
 
 ---

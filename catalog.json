@@ -54,6 +54,14 @@
       "vectorsSha256": "0f88616f3c21ad6f90875e34b3d891b998616f41a0012e45dffe12a0d24fe282",
       "specSha256": "6d0f67769b7b83ba7fc65f64da2d41f9bb2127d27f50b60ea22ab6376cfdfeff",
       "rule": "exactInputSingle selector (0x04e45aaf) || abi(tokenIn,tokenOut,fee,recipient,amountIn,amountOutMinimum,sqrtPriceLimitX96); plain ABI, so cast is the independent reference. Grades a PURE encoder (explicit amountOutMinimum), not the live-quote swap"
+    },
+    "nft-fulfill.v0": {
+      "suite": "conformance/nft-fulfill-v0",
+      "lane": "recomputable",
+      "vectors": 2,
+      "vectorsSha256": "41d9104836b62e6417342f429c22b18f15dc0508d614c3e690d1cc3ef376ffce",
+      "specSha256": "df0992e62dad16715510eec9dbea49f4c27b9f3a78a2294f6170b28152f537aa",
+      "rule": "Seaport fulfillBasicOrder selector (0xfb0f3ee1) or _efficient_6GL6yc (0x00000000) || abi(BasicOrderParameters); plain ABI, cast is the independent reference. Grades a PURE encoder from explicit order params, not the live OpenSea fetch. Vectors captured from a real listings/fulfillment_data payload"
     }
   },
   "lanes": {
@@ -128,19 +136,20 @@
       "name": "OpenSea",
       "category": "NFT market",
       "tagline": "NFT market",
-      "summary": "Reads collection stats, floor prices and live listings, and prepares Seaport buy calldata for real NFTs. The reads are live market data (attested); the buy calldata is deterministic given a specific order — a recipe candidate.",
-      "example": "Show NFTs currently listed in the goblinarinos721 collection, with images and prices.",
+      "summary": "Reads collection stats, floor prices and live listings, and prepares Seaport buy calldata for real NFTs. opensea_encode_fulfillment is the PURE encoder (explicit order params) — recomputable against nft-fulfill.v0. The reads and the live-order buy are attested.",
+      "example": "Encode Seaport fulfillBasicOrder calldata from an explicit order (opensea_encode_fulfillment), or fetch a live listing to buy (opensea_buy_nft).",
       "endpoint": "https://gateway.ensub.org/mcp/opensea",
       "status": "live",
       "introspectable": true,
-      "verification": "attested",
-      "lanes": { "recomputable": 0, "attested": 4 },
-      "vectors": null,
+      "verification": "recomputable",
+      "lanes": { "recomputable": 1, "attested": 4 },
+      "vectors": { "suite": "nft-fulfill.v0" },
       "tools": [
+        { "name": "opensea_encode_fulfillment",   "lane": "recomputable", "suite": "nft-fulfill.v0", "recompute": "Seaport fulfillBasicOrder selector || abi(BasicOrderParameters)" },
         { "name": "opensea_get_nft",              "lane": "attested", "reason": "live market read" },
         { "name": "opensea_get_collection_stats", "lane": "attested", "reason": "live market read" },
         { "name": "opensea_get_listings",         "lane": "attested", "reason": "live market read" },
-        { "name": "opensea_buy_nft",              "lane": "attested", "candidate": true, "recompute": "Seaport fulfillBasicOrder calldata is deterministic given the order params; recipe candidate" }
+        { "name": "opensea_buy_nft",              "lane": "attested", "reason": "fetches a live order from the OpenSea API; re-encode its {function, parameters} via opensea_encode_fulfillment to recompute the calldata byte-for-byte" }
       ]
     },
     {
@@ -242,12 +251,11 @@
     "shipped": [
       { "tool": "og_root", "mcp": "0g", "suite": "storage-root.v0", "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable" },
       { "tool": "ens_set_contenthash", "mcp": "ens", "suite": "id-write.v0", "note": "ENSIP-7 CID->contenthash reimplemented independently in Python, cross-checked vs the content-hash library golden vectors + the live MCP; grades Recomputable" },
-      { "tool": "uniswap_encode_swap", "mcp": "uniswap", "suite": "dex-calldata.v0", "note": "the pure-variant move: a new read-only encoder with explicit amountOutMinimum, so exactInputSingle calldata is deterministic and cast-reproducible; the live-quote uniswap_swap_calldata stays Attested" }
+      { "tool": "uniswap_encode_swap", "mcp": "uniswap", "suite": "dex-calldata.v0", "note": "the pure-variant move: a new read-only encoder with explicit amountOutMinimum, so exactInputSingle calldata is deterministic and cast-reproducible; the live-quote uniswap_swap_calldata stays Attested" },
+      { "tool": "opensea_encode_fulfillment", "mcp": "opensea", "suite": "nft-fulfill.v0", "note": "the pure-variant move for Seaport: a read-only encoder from explicit BasicOrderParameters, validated byte-for-byte (1674 chars) vs a real fulfillment_data payload + the live opensea_buy_nft; the live-order fetch stays Attested" }
     ],
-    "candidateRecipes": [
-      { "tool": "opensea_buy_nft",        "mcp": "opensea", "suite": "nft-fulfill.v0",    "why": "Seaport fulfillment calldata is deterministic given a specific order, but orders are live/ephemeral — hard to pin a stable vector" }
-    ],
-    "note": "Golden vectors are the key when the encoding is CUSTOM (0G flow-merkle, ENSIP-7 multicodec — both shipped). For plain ABI calldata, cast is already the independent reference (no external vectors needed). For tools that mix deterministic + live (uniswap minOut), expose a pure variant first. Live-routing/execution/data-read tools stay attested by nature."
+    "candidateRecipes": [],
+    "note": "Every recomputable-in-principle tool has a shipped recipe — the candidate list is empty. Three patterns, one registry: (1) CUSTOM encoding -> a from-spec impl validated vs published golden vectors (0G flow-merkle, ENSIP-7 multicodec); (2) plain ABI -> cast is the independent reference for free; (3) MIXED deterministic+live -> expose a pure read-only variant, then it's case 2 (Uniswap encode_swap, OpenSea encode_fulfillment). Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay Attested by nature — no derivation exists to recompute."
   },
   "conformance": {
     "model": "Listing is a recomputable predicate, not a permission. Humans ratify a category's golden-vector suite once; after that a submission is graded machine-only.",
