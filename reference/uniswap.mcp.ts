@@ -163,6 +163,24 @@ const TOOLS = [
       required: ["chainId", "tokenIn", "tokenOut", "amountIn", "recipient"],
     },
   },
+  {
+    name: "uniswap_encode_swap",
+    description: "Encode Uniswap v3 SwapRouter02 exactInputSingle calldata from EXPLICIT parameters — no live quote, no symbol/decimals lookup. Deterministic and independently recomputable (byte-identical ABI encoding, graded by dex-calldata.v0). Use to verify what uniswap_swap_calldata builds, or to encode a swap when you already hold raw wei amounts and an explicit amountOutMinimum. Read-only, no network.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        chainId: { type: "number", description: "Chain ID: 1 = Ethereum, 8453 = Base (selects the SwapRouter02 address for `to`)." },
+        tokenIn: { type: "string", description: "Input token CONTRACT ADDRESS (0x...). No symbols — use the WETH address for native." },
+        tokenOut: { type: "string", description: "Output token CONTRACT ADDRESS (0x...)." },
+        fee: { type: "number", description: "Pool fee tier in hundredths of a bip: 500, 3000, or 10000." },
+        recipient: { type: "string", description: "Recipient address (0x...) that receives tokenOut." },
+        amountIn: { type: "string", description: "Exact input amount in RAW base units (wei), e.g. '100000000000000000' for 0.1 ETH." },
+        amountOutMinimum: { type: "string", description: "Minimum output in RAW base units (wei). Explicit — the caller sets slippage; nothing is quoted." },
+        sqrtPriceLimitX96: { type: "string", description: "Optional price limit; default '0' (no limit)." },
+      },
+      required: ["chainId", "tokenIn", "tokenOut", "fee", "recipient", "amountIn", "amountOutMinimum"],
+    },
+  },
 ];
 
 // ─── Tool handlers ────────────────────────────────────────────────────────────
@@ -230,6 +248,40 @@ async function swapCalldata(args: any): Promise<string> {
   });
 }
 
+// Pure, deterministic encoder: same SwapRouter02 exactInputSingle calldata the swap path builds,
+// but from EXPLICIT params (raw wei + explicit amountOutMinimum) — no live quote, no decimals lookup.
+// Recomputable byte-for-byte: cast calldata "exactInputSingle((...))" (tokenIn,tokenOut,fee,recipient,
+// amountIn,amountOutMinimum,sqrtPriceLimitX96) reproduces `data`.
+async function encodeSwap(args: any): Promise<string> {
+  const chainId = Number(args.chainId);
+  const cfg = CHAINS[chainId];
+  if (!cfg) return JSON.stringify({ error: `Unsupported chain ${chainId}. Supported: ${Object.keys(CHAINS).join(", ")}` });
+  let tokenIn: string, tokenOut: string, recipient: string;
+  try {
+    tokenIn = ethers.getAddress(String(args.tokenIn));
+    tokenOut = ethers.getAddress(String(args.tokenOut));
+    recipient = ethers.getAddress(String(args.recipient));
+  } catch { return JSON.stringify({ error: "tokenIn / tokenOut / recipient must be 0x addresses" }); }
+  const fee = Number(args.fee);
+  if (![500, 3000, 10000].includes(fee)) return JSON.stringify({ error: "fee must be 500, 3000, or 10000" });
+  let amountIn: bigint, amountOutMinimum: bigint, sqrtPriceLimitX96: bigint;
+  try {
+    amountIn = BigInt(String(args.amountIn));
+    amountOutMinimum = BigInt(String(args.amountOutMinimum));
+    sqrtPriceLimitX96 = args.sqrtPriceLimitX96 != null ? BigInt(String(args.sqrtPriceLimitX96)) : 0n;
+  } catch { return JSON.stringify({ error: "amountIn / amountOutMinimum / sqrtPriceLimitX96 must be integer strings (wei)" }); }
+
+  const iface = new ethers.Interface(ROUTER_ABI);
+  const data = iface.encodeFunctionData("exactInputSingle", [{
+    tokenIn, tokenOut, fee, recipient, amountIn, amountOutMinimum, sqrtPriceLimitX96,
+  }]);
+  return JSON.stringify({
+    swapTx: { to: cfg.router, data, value: "0", chainId },
+    params: { tokenIn, tokenOut, fee, recipient, amountIn: amountIn.toString(), amountOutMinimum: amountOutMinimum.toString(), sqrtPriceLimitX96: sqrtPriceLimitX96.toString() },
+    note: "Deterministic exactInputSingle calldata from explicit params — recomputable byte-for-byte (dex-calldata.v0). No live quote; the caller owns amountOutMinimum.",
+  });
+}
+
 // ─── MCP endpoint (JSON-RPC) ──────────────────────────────────────────────────
 
 uniswapRoutes.post("/", async (c) => {
@@ -250,6 +302,7 @@ uniswapRoutes.post("/", async (c) => {
       let text: string;
       if      (name === "uniswap_quote")          text = await quote(args);
       else if (name === "uniswap_swap_calldata")  text = await swapCalldata(args);
+      else if (name === "uniswap_encode_swap")    text = await encodeSwap(args);
       else return c.json({ jsonrpc: "2.0", id, error: { code: -32601, message: `Unknown tool: ${name}` } });
       return c.json({ jsonrpc: "2.0", id, result: { content: [{ type: "text", text }] } });
     } catch (e: any) {
