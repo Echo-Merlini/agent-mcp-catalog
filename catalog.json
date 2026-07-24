@@ -81,16 +81,53 @@
       "status": "live",
       "introspectable": true,
       "verification": "recomputable",
-      "lanes": { "recomputable": 4, "attested": 3 },
-      "vectors": { "suite": "ens_write.v0" },
+      "lanes": {
+        "recomputable": 4,
+        "attested": 3
+      },
+      "vectors": {
+        "suite": "ens_write.v0"
+      },
       "tools": [
-        { "name": "ens_set_addr",        "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setAddr selector || namehash(name) || abi(address)" },
-        { "name": "ens_set_text",        "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setText selector || namehash(name) || abi(key,value)" },
-        { "name": "ens_set_primary",     "lane": "recomputable", "suite": "ens_write.v0", "recompute": "setName(name) on ReverseRegistrar" },
-        { "name": "ens_set_contenthash", "lane": "recomputable", "suite": "id-write.v0",  "recompute": "setContenthash selector || namehash(name) || abi(ENSIP-7 contenthash(CID))" },
-        { "name": "ens_check",           "lane": "attested",  "reason": "live availability + price read (non-deterministic)" },
-        { "name": "ens_register_commit", "lane": "attested",  "reason": "commit/reveal, block-timing dependent" },
-        { "name": "ens_register",        "lane": "attested",  "reason": "commit/reveal purchase, block-timing dependent" }
+        {
+          "name": "ens_set_addr",
+          "lane": "recomputable",
+          "suite": "ens_write.v0",
+          "recompute": "setAddr selector || namehash(name) || abi(address)"
+        },
+        {
+          "name": "ens_set_text",
+          "lane": "recomputable",
+          "suite": "ens_write.v0",
+          "recompute": "setText selector || namehash(name) || abi(key,value)"
+        },
+        {
+          "name": "ens_set_primary",
+          "lane": "recomputable",
+          "suite": "ens_write.v0",
+          "recompute": "setName(name) on ReverseRegistrar"
+        },
+        {
+          "name": "ens_set_contenthash",
+          "lane": "recomputable",
+          "suite": "id-write.v0",
+          "recompute": "setContenthash selector || namehash(name) || abi(ENSIP-7 contenthash(CID))"
+        },
+        {
+          "name": "ens_check",
+          "lane": "attested",
+          "reason": "live availability + price read (non-deterministic)"
+        },
+        {
+          "name": "ens_register_commit",
+          "lane": "attested",
+          "reason": "commit/reveal, block-timing dependent"
+        },
+        {
+          "name": "ens_register",
+          "lane": "attested",
+          "reason": "commit/reveal purchase, block-timing dependent"
+        }
       ]
     },
     {
@@ -104,12 +141,30 @@
       "status": "live",
       "introspectable": true,
       "verification": "recomputable",
-      "lanes": { "recomputable": 1, "attested": 2 },
-      "vectors": { "suite": "dex-calldata.v0" },
+      "lanes": {
+        "recomputable": 1,
+        "attested": 2
+      },
+      "vectors": {
+        "suite": "dex-calldata.v0"
+      },
       "tools": [
-        { "name": "uniswap_encode_swap",    "lane": "recomputable", "suite": "dex-calldata.v0", "recompute": "exactInputSingle selector || abi(tokenIn,tokenOut,fee,recipient,amountIn,amountOutMinimum,sqrtPriceLimitX96)" },
-        { "name": "uniswap_quote",          "lane": "attested", "reason": "live QuoterV2 on-chain read; price varies with pool state" },
-        { "name": "uniswap_swap_calldata",  "lane": "attested", "reason": "derives amountOutMinimum from a live quote; re-encode via uniswap_encode_swap to recompute the calldata byte-for-byte" }
+        {
+          "name": "uniswap_encode_swap",
+          "lane": "recomputable",
+          "suite": "dex-calldata.v0",
+          "recompute": "exactInputSingle selector || abi(tokenIn,tokenOut,fee,recipient,amountIn,amountOutMinimum,sqrtPriceLimitX96)"
+        },
+        {
+          "name": "uniswap_quote",
+          "lane": "attested",
+          "reason": "live QuoterV2 on-chain read; price varies with pool state"
+        },
+        {
+          "name": "uniswap_swap_calldata",
+          "lane": "attested",
+          "reason": "derives amountOutMinimum from a live quote; re-encode via uniswap_encode_swap to recompute the calldata byte-for-byte"
+        }
       ]
     },
     {
@@ -123,12 +178,30 @@
       "status": "live",
       "introspectable": true,
       "verification": "recomputable",
-      "lanes": { "recomputable": 1, "attested": 2 },
-      "vectors": { "suite": "storage-root.v0" },
+      "lanes": {
+        "recomputable": 1,
+        "attested": 2
+      },
+      "vectors": {
+        "suite": "storage-root.v0"
+      },
       "tools": [
-        { "name": "og_root",           "lane": "recomputable", "suite": "storage-root.v0", "recompute": "0G flow-merkle rootHash(content): 256B chunks, keccak256 leaves, flow-pad, odd-node carry" },
-        { "name": "og_store_artifact", "lane": "attested", "reason": "live upload (gas + network) = an action; its returned rootHash equals storage-root.v0 and is recomputable offline via og_root" },
-        { "name": "og_fetch_artifact", "lane": "attested", "reason": "content-addressed read; verify-only — fetched bytes must hash back to the requested root" }
+        {
+          "name": "og_root",
+          "lane": "recomputable",
+          "suite": "storage-root.v0",
+          "recompute": "0G flow-merkle rootHash(content): 256B chunks, keccak256 leaves, flow-pad, odd-node carry"
+        },
+        {
+          "name": "og_store_artifact",
+          "lane": "attested",
+          "reason": "live upload (gas + network) = an action; its returned rootHash equals storage-root.v0 and is recomputable offline via og_root"
+        },
+        {
+          "name": "og_fetch_artifact",
+          "lane": "attested",
+          "reason": "content-addressed read; verify-only — fetched bytes must hash back to the requested root"
+        }
       ]
     },
     {
@@ -142,14 +215,40 @@
       "status": "live",
       "introspectable": true,
       "verification": "recomputable",
-      "lanes": { "recomputable": 1, "attested": 4 },
-      "vectors": { "suite": "nft-fulfill.v0" },
+      "lanes": {
+        "recomputable": 1,
+        "attested": 4
+      },
+      "vectors": {
+        "suite": "nft-fulfill.v0"
+      },
       "tools": [
-        { "name": "opensea_encode_fulfillment",   "lane": "recomputable", "suite": "nft-fulfill.v0", "recompute": "Seaport fulfillBasicOrder selector || abi(BasicOrderParameters)" },
-        { "name": "opensea_get_nft",              "lane": "attested", "reason": "live market read" },
-        { "name": "opensea_get_collection_stats", "lane": "attested", "reason": "live market read" },
-        { "name": "opensea_get_listings",         "lane": "attested", "reason": "live market read" },
-        { "name": "opensea_buy_nft",              "lane": "attested", "reason": "fetches a live order from the OpenSea API; re-encode its {function, parameters} via opensea_encode_fulfillment to recompute the calldata byte-for-byte" }
+        {
+          "name": "opensea_encode_fulfillment",
+          "lane": "recomputable",
+          "suite": "nft-fulfill.v0",
+          "recompute": "Seaport fulfillBasicOrder selector || abi(BasicOrderParameters)"
+        },
+        {
+          "name": "opensea_get_nft",
+          "lane": "attested",
+          "reason": "live market read"
+        },
+        {
+          "name": "opensea_get_collection_stats",
+          "lane": "attested",
+          "reason": "live market read"
+        },
+        {
+          "name": "opensea_get_listings",
+          "lane": "attested",
+          "reason": "live market read"
+        },
+        {
+          "name": "opensea_buy_nft",
+          "lane": "attested",
+          "reason": "fetches a live order from the OpenSea API; re-encode its {function, parameters} via opensea_encode_fulfillment to recompute the calldata byte-for-byte"
+        }
       ]
     },
     {
@@ -163,12 +262,27 @@
       "status": "live",
       "introspectable": true,
       "verification": "attested",
-      "lanes": { "recomputable": 0, "attested": 3 },
+      "lanes": {
+        "recomputable": 0,
+        "attested": 3
+      },
       "vectors": null,
       "tools": [
-        { "name": "get_supported_chains", "lane": "attested", "reason": "live chain list" },
-        { "name": "search_tokens",        "lane": "attested", "reason": "live token index" },
-        { "name": "get_swap_calldata",    "lane": "attested", "reason": "depends on live cross-chain routing (non-deterministic)" }
+        {
+          "name": "get_supported_chains",
+          "lane": "attested",
+          "reason": "live chain list"
+        },
+        {
+          "name": "search_tokens",
+          "lane": "attested",
+          "reason": "live token index"
+        },
+        {
+          "name": "get_swap_calldata",
+          "lane": "attested",
+          "reason": "depends on live cross-chain routing (non-deterministic)"
+        }
       ]
     },
     {
@@ -182,13 +296,32 @@
       "status": "live",
       "introspectable": true,
       "verification": "attested",
-      "lanes": { "recomputable": 0, "attested": 4 },
+      "lanes": {
+        "recomputable": 0,
+        "attested": 4
+      },
       "vectors": null,
       "tools": [
-        { "name": "flashbots_send_private_tx", "lane": "attested", "reason": "private network submit" },
-        { "name": "flashbots_simulate_tx",     "lane": "attested", "reason": "live simulation against head state" },
-        { "name": "flashbots_send_bundle",     "lane": "attested", "reason": "private bundle submit" },
-        { "name": "flashbots_tx_status",       "lane": "attested", "reason": "live status read" }
+        {
+          "name": "flashbots_send_private_tx",
+          "lane": "attested",
+          "reason": "private network submit"
+        },
+        {
+          "name": "flashbots_simulate_tx",
+          "lane": "attested",
+          "reason": "live simulation against head state"
+        },
+        {
+          "name": "flashbots_send_bundle",
+          "lane": "attested",
+          "reason": "private bundle submit"
+        },
+        {
+          "name": "flashbots_tx_status",
+          "lane": "attested",
+          "reason": "live status read"
+        }
       ]
     },
     {
@@ -203,7 +336,10 @@
       "introspectable": false,
       "introspectNote": "POST /conformance/introspect returns HTTP 400 — tools/list not in the standard shape; all tools are live reads = attested",
       "verification": "attested",
-      "lanes": { "recomputable": 0, "attested": null },
+      "lanes": {
+        "recomputable": 0,
+        "attested": null
+      },
       "vectors": null,
       "tools": []
     },
@@ -218,15 +354,38 @@
       "status": "live",
       "introspectable": false,
       "verification": "verifier",
-      "lanes": { "recomputable": 0, "attested": 0 },
-      "vectors": { "suite": "recompute-kit/conformance" },
+      "lanes": {
+        "recomputable": 0,
+        "attested": 0
+      },
+      "vectors": {
+        "suite": "recompute-kit/conformance"
+      },
       "tools": [
-        { "name": "recompute_onchain",        "lane": "verifier" },
-        { "name": "recompute_receipt_proof",  "lane": "verifier" },
-        { "name": "recompute_storage_proof",  "lane": "verifier" },
-        { "name": "recompute_commitment",     "lane": "verifier" },
-        { "name": "recompute_step",           "lane": "verifier" },
-        { "name": "verify_claim",             "lane": "verifier" }
+        {
+          "name": "recompute_onchain",
+          "lane": "verifier"
+        },
+        {
+          "name": "recompute_receipt_proof",
+          "lane": "verifier"
+        },
+        {
+          "name": "recompute_storage_proof",
+          "lane": "verifier"
+        },
+        {
+          "name": "recompute_commitment",
+          "lane": "verifier"
+        },
+        {
+          "name": "recompute_step",
+          "lane": "verifier"
+        },
+        {
+          "name": "verify_claim",
+          "lane": "verifier"
+        }
       ]
     },
     {
@@ -240,19 +399,59 @@
       "status": "live",
       "introspectable": false,
       "verification": "verifier",
-      "lanes": { "recomputable": 0, "attested": 0 },
-      "vectors": { "suite": "recompute-kit/conformance" },
+      "lanes": {
+        "recomputable": 0,
+        "attested": 0
+      },
+      "vectors": {
+        "suite": "recompute-kit/conformance"
+      },
       "tools": [
-        { "name": "conformance_run", "lane": "verifier" }
+        {
+          "name": "conformance_run",
+          "lane": "verifier"
+        }
       ]
+    },
+    {
+      "slug": "thegraph",
+      "name": "The Graph",
+      "category": "Indexed blockchain data",
+      "tagline": "Recomputable subgraph reads",
+      "summary": "Queries live blockchain data via subgraphs on The Graph's decentralized network. graph_query reads the latest block (live → attested); graph_query_at_block pins the read to a finalized block — byte-reproducible across indexers, so anyone can independently recompute it. The recomputable lane for indexed data.",
+      "example": "Read the Uniswap v3 USDC/WETH pool totalValueLockedUSD at block 20000000 — a byte-reproducible read.",
+      "custody": "read-only",
+      "reference": "reference/thegraph.mcp.ts",
+      "endpoint": "https://gateway.ensub.org/mcp/thegraph",
+      "status": "live"
     }
   ],
   "roadmap": {
     "shipped": [
-      { "tool": "og_root", "mcp": "0g", "suite": "storage-root.v0", "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable" },
-      { "tool": "ens_set_contenthash", "mcp": "ens", "suite": "id-write.v0", "note": "ENSIP-7 CID->contenthash reimplemented independently in Python, cross-checked vs the content-hash library golden vectors + the live MCP; grades Recomputable" },
-      { "tool": "uniswap_encode_swap", "mcp": "uniswap", "suite": "dex-calldata.v0", "note": "the pure-variant move: a new read-only encoder with explicit amountOutMinimum, so exactInputSingle calldata is deterministic and cast-reproducible; the live-quote uniswap_swap_calldata stays Attested" },
-      { "tool": "opensea_encode_fulfillment", "mcp": "opensea", "suite": "nft-fulfill.v0", "note": "the pure-variant move for Seaport: a read-only encoder from explicit BasicOrderParameters, validated byte-for-byte (1674 chars) vs a real fulfillment_data payload + the live opensea_buy_nft; the live-order fetch stays Attested" }
+      {
+        "tool": "og_root",
+        "mcp": "0g",
+        "suite": "storage-root.v0",
+        "note": "0G flow-merkle root reimplemented independently in Python, cross-checked vs the SDK's golden vectors + the live MCP; grades Recomputable"
+      },
+      {
+        "tool": "ens_set_contenthash",
+        "mcp": "ens",
+        "suite": "id-write.v0",
+        "note": "ENSIP-7 CID->contenthash reimplemented independently in Python, cross-checked vs the content-hash library golden vectors + the live MCP; grades Recomputable"
+      },
+      {
+        "tool": "uniswap_encode_swap",
+        "mcp": "uniswap",
+        "suite": "dex-calldata.v0",
+        "note": "the pure-variant move: a new read-only encoder with explicit amountOutMinimum, so exactInputSingle calldata is deterministic and cast-reproducible; the live-quote uniswap_swap_calldata stays Attested"
+      },
+      {
+        "tool": "opensea_encode_fulfillment",
+        "mcp": "opensea",
+        "suite": "nft-fulfill.v0",
+        "note": "the pure-variant move for Seaport: a read-only encoder from explicit BasicOrderParameters, validated byte-for-byte (1674 chars) vs a real fulfillment_data payload + the live opensea_buy_nft; the live-order fetch stays Attested"
+      }
     ],
     "candidateRecipes": [],
     "note": "Every recomputable-in-principle tool has a shipped recipe — the candidate list is empty. Three patterns, one registry: (1) CUSTOM encoding -> a from-spec impl validated vs published golden vectors (0G flow-merkle, ENSIP-7 multicodec); (2) plain ABI -> cast is the independent reference for free; (3) MIXED deterministic+live -> expose a pure read-only variant, then it's case 2 (Uniswap encode_swap, OpenSea encode_fulfillment). Live-routing/execution/data-read tools (LI.FI routes, Flashbots submits, Alchemy reads) stay Attested by nature — no derivation exists to recompute."
