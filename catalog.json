@@ -424,6 +424,18 @@
       "reference": "reference/thegraph.mcp.ts",
       "endpoint": "https://gateway.ensub.org/mcp/thegraph",
       "status": "live"
+    },
+    {
+      "slug": "uniswapx",
+      "name": "UniswapX",
+      "category": "DEX / intents",
+      "tagline": "Recomputable swap intents",
+      "summary": "The agent signs a UniswapX Dutch-auction order — a gasless, non-custodial swap INTENT (EIP-712 + Permit2) executed by fillers. uniswapx_build_order returns the typed data to sign + the order hash (live → attested); uniswapx_order_hash computes the deterministic EIP-712 order hash of an explicit order (byte-reproducible → recomputable). Don't trust the order — recompute it.",
+      "example": "Build a gasless UniswapX intent to swap 0.1 WETH for USDC, and show its recomputable order hash.",
+      "custody": "non-custodial (user signs the intent)",
+      "reference": "reference/uniswapx.mcp.ts",
+      "endpoint": "https://gateway.ensub.org/mcp/uniswapx",
+      "status": "live"
     }
   ],
   "roadmap": {
